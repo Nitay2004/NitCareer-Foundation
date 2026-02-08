@@ -1,0 +1,178 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clerkId      String   @unique
+  email        String   @unique
+  firstName    String?
+  lastName     String?
+  profileImage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  assessments  CareerAssessment[]
+  resumes      Resume[]
+  interviews   InterviewSession[]
+  applications JobApplication[]
+  bookings     Booking[] // Student bookings
+
+  @@map("users")
+}
+
+model Expert {
+  id             String   @id @default(cuid())
+  clerkId        String   @unique
+  email          String   @unique
+  firstName      String
+  lastName       String
+  profileImage   String?
+  bio            String?
+  specialization String[] // Areas of expertise
+  experience     Int? // Years of experience
+  rating         Float?   @default(0)
+  isActive       Boolean  @default(true)
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  bookings     Booking[]
+  liveSessions LiveSession[]
+
+  @@map("experts")
+}
+
+model LiveSession {
+  id       String @id @default(cuid())
+  expertId String
+  expert   Expert @relation(fields: [expertId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  sessionType String   @default("group_counselling")
+  scheduledAt DateTime
+  duration    Int      @default(60)
+  maxStudents Int      @default(50)
+  status      String   @default("upcoming") // upcoming, live, completed, cancelled
+
+  // Relations
+  bookings Booking[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("live_sessions")
+}
+
+model Booking {
+  id        String @id @default(cuid())
+  studentId String
+  student   User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  expertId  String
+  expert    Expert @relation(fields: [expertId], references: [id], onDelete: Cascade)
+
+  liveSessionId String?
+  liveSession   LiveSession? @relation(fields: [liveSessionId], references: [id], onDelete: Cascade)
+
+  sessionType String // career_guidance, resume_review, interview_prep, etc.
+  scheduledAt DateTime
+  duration    Int      @default(60) // minutes
+  status      String   @default("pending") // pending, confirmed, completed, cancelled
+  notes       String?
+
+  meetingLink String? // For virtual meetings
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("bookings")
+}
+
+model CareerAssessment {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Assessment data
+  interests   String[] // Array of interest areas
+  skills      String[] // Array of skills
+  personality String? // Personality type
+  careerGoals String? // Career aspirations
+
+  score       Int? // Overall assessment score
+  completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("career_assessments")
+}
+
+model Resume {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title    String
+  content  String // JSON string of resume data
+  template String  @default("modern")
+  isPublic Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  applications JobApplication[]
+
+  @@map("resumes")
+}
+
+model InterviewSession {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type      String // mock, practice, etc.
+  questions String[] // Array of questions
+  answers   String[] // Array of answers
+  feedback  String? // Interviewer feedback
+
+  score       Int?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("interview_sessions")
+}
+
+model JobApplication {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  company     String
+  position    String
+  status      String   @default("applied") // applied, interviewing, offered, rejected
+  appliedDate DateTime @default(now())
+
+  notes    String?
+  resumeId String?
+  resume   Resume? @relation(fields: [resumeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("job_applications")
+}
