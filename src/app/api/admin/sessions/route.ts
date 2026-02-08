@@ -57,13 +57,13 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Cannot schedule sessions in the past" }, { status: 400 });
         }
 
-        const dur = parseInt(duration);
-        if (isNaN(dur) || dur <= 0) {
+        const dur = parseInt(duration) || 60;
+        if (dur <= 0) {
             return NextResponse.json({ error: "Duration must be a positive number" }, { status: 400 });
         }
 
-        const maxS = parseInt(maxStudents);
-        if (isNaN(maxS) || maxS <= 0) {
+        const maxS = parseInt(maxStudents) || 50;
+        if (maxS <= 0) {
             return NextResponse.json({ error: "Maximum students must be at least 1" }, { status: 400 });
         }
 
@@ -74,15 +74,18 @@ export async function POST(request: NextRequest) {
                 description,
                 sessionType: sessionType || "group_counselling",
                 scheduledAt: scheduledDate,
-                duration: parseInt(duration) || 60,
-                maxStudents: parseInt(maxStudents) || 50,
+                duration: dur,
+                maxStudents: maxS,
                 status: "upcoming"
             }
         });
 
         return NextResponse.json({ success: true, session });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Admin Session Creation Error:", error);
-        return NextResponse.json({ error: "Failed to create session slot" }, { status: 500 });
+        return NextResponse.json({
+            error: "Failed to create session slot",
+            details: error.message
+        }, { status: 500 });
     }
 }

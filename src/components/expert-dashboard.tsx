@@ -227,7 +227,9 @@ export function ExpertDashboard({ expertId, isAdminView = false }: ExpertDashboa
             });
             if (!res.ok) {
                 const errorData = await res.json();
-                throw new Error(errorData.error || "Failed to create session slot");
+                const errorMessage = errorData.error || "Failed to create session slot";
+                const errorDetails = errorData.details ? `: ${errorData.details}` : "";
+                throw new Error(`${errorMessage}${errorDetails}`);
             }
 
             notify.dismiss(toastId);
@@ -246,7 +248,12 @@ export function ExpertDashboard({ expertId, isAdminView = false }: ExpertDashboa
             const sessionsUrl = isAdminView ? "/api/admin/sessions" : "/api/expert/bookings";
             const sessRes = await fetch(sessionsUrl);
             const sessData = await sessRes.json();
-            setLiveSessions(sessData.liveSessions || []);
+
+            if (isAdminView) {
+                setLiveSessions(sessData.sessions || []);
+            } else {
+                setLiveSessions(sessData.liveSessions || []);
+            }
         } catch (err: any) {
             notify.dismiss(toastId);
             setAlertConfig({
